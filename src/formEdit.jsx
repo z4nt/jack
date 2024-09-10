@@ -2,12 +2,10 @@ import React, { useState } from 'react';
 import { jwtDecode } from "jwt-decode";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 export default function TaskForm({onClose, DraggableId}) {
-  // Estado para armazenar os dados do formulário
-  
+
   const [token, setToken] = useState(localStorage.getItem("token"));
   const userId = token ? jwtDecode(token).id : null;
   const [newTask, setNewTask] = useState({ title: '', content: '', TaskStatus: '', usuarioId: userId });
-  // Função para lidar com a mudança dos campos do formulário
   const handleChange = (e) => {
     const { name, value } = e.target;
     console.log(name, value)
@@ -16,11 +14,8 @@ export default function TaskForm({onClose, DraggableId}) {
       [name]: value
     }));
   };
-
-  // Função para lidar com o envio do formulário
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Enviar dados para o backend ou atualizar o estado local
     try {
       const response = await fetch(`http://localhost:10000/task/${DraggableId}`, {
         method: 'PUT',
@@ -31,12 +26,9 @@ export default function TaskForm({onClose, DraggableId}) {
         body: JSON.stringify(newTask),
       });
       if (response.ok) {
-        // Limpar formulário e fechar após sucesso
         setNewTask({ title: response.title , content: response.content, status: response.TaskStatus });
-        onClose(); // Fechar o formulário
-        // Atualizar estado ou recarregar tarefas
+        onClose(); 
       } else {
-        // Lidar com erro
         console.error('Erro ao criar tarefa:', await response.text());
       }
     } catch (error) {

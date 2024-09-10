@@ -2,67 +2,77 @@ import { useState, useEffect } from "react";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import TaskForm from "./form.jsx";
 import { jwtDecode } from "jwt-decode";
+import deleteTask from "./delete.jsx";
 
 export default function Home() {
   const [currentFormId, setCurrentFormId] = useState(null); // Estado para armazenar o ID da tarefa ou coluna que está com o formulário visível
   const [token, setToken] = useState(localStorage.getItem("token"));
   const [tarefas, setTarefas] = useState(null);
 
-  useEffect(() => {
-    async function fetchTarefas() {
-      const token = localStorage.getItem("token");
-      console.log(token)
-      const userId = token ? jwtDecode(token).id : null;
-      console.log(userId)
+  // Função para buscar tarefas
+  async function fetchTarefas() {
+    const token = localStorage.getItem("token");
+    console.log(token);
+    const userId = token ? jwtDecode(token).id : null;
+    console.log(userId);
 
-      if (!userId) {
-        console.error('Não foi possível obter o userId');
-        return;
-      }
-      try {
-        const response = await fetch(`http://localhost:10000/task/list/${userId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          },
-        });
-        const data = await response.json();
-
-        const colunas = {
-          coluna0: { id: "coluna0", title: "to do", taskIds: [] },
-          coluna1: { id: "coluna1", title: "fazendo", taskIds: [] },
-          coluna2: { id: "coluna2", title: "feito", taskIds: [] },
-        };
-
-        const tarefa = {};
-
-        data.forEach(task => {
-          if (task.TaskStatus === 'to do') {
-            colunas.coluna0.taskIds.push(task.id);
-          } else if (task.TaskStatus === 'fazendo') {
-            colunas.coluna1.taskIds.push(task.id);
-          } else if (task.TaskStatus === 'feito') {
-            colunas.coluna2.taskIds.push(task.id);
-          }
-
-          tarefa[task.id] = {
-            id: String(task.id),
-            title: task.title,
-            content: task.content,
-            status: task.TaskStatus
-          };
-        });
-
-        setTarefas({ colunas, tarefa });
-
-      } catch (error) {
-        console.error('Erro ao buscar tarefas:', error);
-      }
+    if (!userId) {
+      console.error('Não foi possível obter o userId');
+      return;
     }
 
+    try {
+      const response = await fetch(`http://localhost:10000/task/list/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+      });
+      const data = await response.json();
+
+      const colunas = {
+        coluna0: { id: "coluna0", title: "to do", taskIds: [] },
+        coluna1: { id: "coluna1", title: "fazendo", taskIds: [] },
+        coluna2: { id: "coluna2", title: "feito", taskIds: [] },
+      };
+
+      const tarefa = {};
+
+      data.forEach(task => {
+        if (task.TaskStatus === 'to do') {
+          colunas.coluna0.taskIds.push(task.id);
+        } else if (task.TaskStatus === 'fazendo') {
+          colunas.coluna1.taskIds.push(task.id);
+        } else if (task.TaskStatus === 'feito') {
+          colunas.coluna2.taskIds.push(task.id);
+        }
+
+        tarefa[task.id] = {
+          id: String(task.id),
+          title: task.title,
+          content: task.content,
+          status: task.TaskStatus
+        };
+      });
+
+      setTarefas({ colunas, tarefa });
+
+    } catch (error) {
+      console.error('Erro ao buscar tarefas:', error);
+    }
+  }
+
+  // Chama fetchTarefas quando o componente é montado
+  useEffect(() => {
     fetchTarefas();
   }, []);
 
-  if (!tarefas || tarefas.length === 0) {
+  const handleDelete = async (taskId) => {
+    await deleteTask(taskId);
+    // Atualiza o estado ou re-fetch tarefas após a exclusão
+    fetchTarefas();
+  };
+
+  if (!tarefas) {
     return <p>Carregando...</p>;
   }
 
@@ -122,6 +132,8 @@ export default function Home() {
           [destination.droppableId]: finishColuna,
         },
       });
+
+      fetchTarefas();
     });
   }
 
@@ -158,7 +170,7 @@ export default function Home() {
                       >
                         {(provided) => (
                           <div
-                            className="bg-white mt-2 border-slate-950 border-2 rounded-lg px-2 h-28"
+                            className="bg-white mt-2 border-slate-950 border-2 rounded-lg px-2 h-40 "
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
@@ -169,7 +181,27 @@ export default function Home() {
                             <p className="mt-1 ">
                               {task?.content}
                             </p>
-                            <button onClick={() => handleFormOpen(task.id)} type="button" className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-full  p-2 ml-64  ">
+                            <button
+                              onClick={() => handleDelete(task.id)}
+                              type="button"
+                              className="text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-full p-2 "
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                strokeWidth="2"
+                                stroke="currentColor"
+                                className="w-6 h-6"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M6 18L18 6M6 6l12 12"
+                                />
+                              </svg>
+                            </button>
+                            <button onClick={() => handleFormOpen(task.id)} type="button" className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-full w-10 mt-10 ml-2 p-2">
                               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-6">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
                               </svg>
@@ -185,7 +217,7 @@ export default function Home() {
                 )}
                 {coluna?.id === 'coluna0' ? (
                   <div>
-                    <button onClick={() => handleFormOpen("newTask")} type="button" className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-full text-sm p-2.5 text-center inline-flex items-center me-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 ml-32 mt-10">
+                    <button onClick={() => handleFormOpen("newTask")} type="button" className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-full text-sm p-2.5 text-center inline-flex items-center me-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 mt-10 flex justify-end space-x-2">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                       </svg>
