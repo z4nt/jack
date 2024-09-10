@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { jwtDecode } from "jwt-decode";
-export default function TaskForm({ onClose }) {
+export default function TaskForm({ onClose, id = null }) {
   // Estado para armazenar os dados do formulário
   
   const [token, setToken] = useState(localStorage.getItem("token"));
@@ -16,13 +16,13 @@ export default function TaskForm({ onClose }) {
     }));
   };
 
-  // Função para lidar com o envio do formulário
   const handleSubmit = async (e) => {
     e.preventDefault();
     // Enviar dados para o backend ou atualizar o estado local
+    const url = id? `http://localhost:10000/task/${id}` : `http://localhost:10000/task`
     try {
-      const response = await fetch('http://localhost:10000/task', {
-        method: 'POST',
+      const response = await fetch(url, {
+        method: id? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -42,12 +42,14 @@ export default function TaskForm({ onClose }) {
       console.error('Erro ao enviar tarefa:', error);
     }
   };
+  // Função para lidar com o envio do formulário
+  
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">
       <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={onClose}></div>
       <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 z-50 relative">
-        <h2 className="text-2xl font-bold mb-4">Nova Tarefa</h2>
+        <h2 className="text-2xl font-bold mb-4">{ id ? 'Editar Tarefa' : 'Nova Tarefa'}</h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="title">
@@ -106,7 +108,7 @@ export default function TaskForm({ onClose }) {
               type="submit"
               className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
             >
-              Salvar
+              {id? 'Atualizar' : 'salvar'}
             </button>
           </div>
         </form>
